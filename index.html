@@ -4720,7 +4720,7 @@ function jaktFraga(el){
   el.innerHTML = `<section class="${rev?"revealed":""}">
     <div class="qhead"><span class="fallchip">Fall ${q.c.nr}</span><span class="label">Fråga ${Q.i+1} av ${Q.list.length} · ${esc(q.c.titel)}</span>
       <div class="row">${rev?"":`<span class="mono" style="font-size:2em;font-weight:600" id="qleft">${Math.max(0,Q.left)}</span>`}
-      ${rev?`<button class="btn ghost small" id="andra">Ändra lagens svar</button><button class="btn primary" id="next">${Q.i+1<Q.list.length?"Topplistan →":"Se slutresultatet →"}</button>`:`<button class="btn hot" id="rev">Visa rätt svar</button>`}</div></div>
+      ${rev?`<button class="btn ghost small" id="andra">Ändra lagens svar</button><button class="btn primary" id="next">${Q.i+1<Q.list.length?"Nästa fråga →":"Se slutresultatet →"}</button>`:`<button class="btn hot" id="rev">Visa rätt svar</button>`}</div></div>
     <div class="stegrad">${stegHTML(rev?1:0)}${skarmKnapp()}</div>
     ${!rev && Q.left <= 0 ? `<p class="muted" style="margin:6px 0 0">Klicka in lagens svar igen och tryck sedan på <b>Visa rätt svar</b>.</p>` : ""}
     <p class="qcase">${esc(q.c.text)}</p>
