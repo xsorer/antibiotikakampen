@@ -5188,6 +5188,12 @@ function kaosPat(root, n){
 // ================= RESISTENSRESAN =================
 const RRS = store.get("rrs", {}); // progress per vy: {nästa steg-index som är upplåst} – sparas så att man kan växla vy utan att börja om
 const sparaRR = () => { store.set("rrs", RRS); store.set("rrnotes", NOTES); };
+// nollställ ett eller alla fall (alla vyer: presentationsvy, gängen och lärarvyn)
+function rrNollstall(id){ [RRS, NOTES].forEach(o => Object.keys(o).forEach(k => { if (!id || k.startsWith(id + "-")) delete o[k]; })); sparaRR(); }
+// två klick krävs, så att ingen råkar nollställa mitt i ett fall
+function rrBekrafta(knapp, gor){ if (!knapp) return; const txt = knapp.textContent;
+  knapp.onclick = () => { if (knapp.dataset.saker) { gor(); return; } knapp.dataset.saker = "1"; knapp.textContent = "Säker? Klicka igen";
+    setTimeout(() => { if (knapp.isConnected) { delete knapp.dataset.saker; knapp.textContent = txt; } }, 3500); }; }
 function viewResa(root, rest){
   const c = RR.find(x => x.id === rest[0]); const roll = rest[1];
   if (c && ["inf","lab","lar","skarm"].includes(roll)) return roll === "skarm" ? resaSkarm(root, c) : resaVy(root, c, roll);
@@ -5208,7 +5214,9 @@ function viewResa(root, rest){
     ${LARARE ? `<a class="btn hot presknapp" href="#resa-${c.id}-skarm">${IK.skarm} Presentationsvy →</a>
     <span class="presvyer"><a href="#resa-${c.id}-inf">Infektionsgänget</a><a href="#resa-${c.id}-lab">Labbgänget</a><a href="#resa-${c.id}-lar">Lärarvy med facit</a></span>`
     : `<div class="row"><a class="btn small hot" href="#resa-${c.id}-inf">Infektionsgänget</a><a class="btn small" href="#resa-${c.id}-lab" style="background:var(--ochre-soft);color:var(--ochre);border-color:var(--ochre)">Labbgänget</a></div>`}</div></article>`).join("")}</div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn small ghost" id="rrnollst">↺ Återställ alla fall</button></div>
   `;
+  rrBekrafta($("#rrnollst"), () => { rrNollstall(); viewResa(root, rest); });
 }
 const NOTES = store.get("rrnotes", {});
 function resaVy(root, c, roll){
@@ -5221,7 +5229,7 @@ function resaVy(root, c, roll){
     <section class="panel common"><div class="stack"><span class="label">Gemensam information</span><p style="font-size:1.1em">${esc(c.gemensam)}</p></div><img src="${IMG(c.img)}" alt=""></section>
     <div class="steps" id="steps"></div>`;
   if (lar) { $("#spray").onclick = () => celebrate("vatten"); $("#candy").onclick = () => celebrate("godis"); }
-  else $("#restart").onclick = () => { RRS[key] = 0; NOTES[key] = {}; sparaRR(); draw(); };
+  else rrBekrafta($("#restart"), () => { RRS[key] = 0; NOTES[key] = {}; sparaRR(); draw(); });
   const item = (s, i, pos) => {
     if (lar) return stepHTML(c, s, i, roll, true, false);
     if (s.roll === roll) return stepHTML(c, s, i, roll, false, i < pos);
@@ -5259,7 +5267,7 @@ function resaSkarm(root, c){
   const gang = r => r === "inf" ? "Infektionsgänget" : "Labbgänget";
   const rita = () => {
     const pos = Math.min(RRS[key], c.steg.length), klart = pos >= c.steg.length;
-    root.innerHTML = `${resaFlikar(c, "skarm")}<div class="rolebar skarm"><a class="btn small ghost" href="#resa-fall">← Alla fall</a><h2>Fall ${c.nr} · ${esc(c.titel)} – Presentationsvy</h2></div>
+    root.innerHTML = `${resaFlikar(c, "skarm")}<div class="rolebar skarm"><a class="btn small ghost" href="#resa-fall">← Alla fall</a><h2>Fall ${c.nr} · ${esc(c.titel)} – Presentationsvy</h2><button class="btn small ghost" id="rsnollst">↺ Återställ fallet</button></div>
       <p class="muted" style="margin:-6px 0 14px">${klart ? "Fallet är klart." : `Steg ${pos+1} av ${c.steg.length} · ${gang(c.steg[pos].roll)} arbetar nu. Tryck på Nästa steg när de har ringt och rapporterat.`}</p>
       <section class="panel common"><div class="stack"><span class="label">Gemensam information</span><p style="font-size:1.1em">${esc(c.gemensam)}</p></div><img src="${IMG(c.img)}" alt=""></section>
       <div class="steps" id="steps">${c.steg.slice(0, pos + 1).map((st, i) => st ? `<article class="step skarmsteg ${i === pos ? "nu" : "tidigare"}" id="st${i}">
@@ -5269,9 +5277,12 @@ function resaSkarm(root, c){
         ${st.uppgift ? labTask(st.uppgift, i) : ""}
         ${st.fragor.map(([q,a],k)=>`<div class="qa"><b>${esc(q)}</b><div><button class="reveal-btn" data-fac="${i}-${k}">Visa facit</button></div><div class="facit" id="fa${i}-${k}" hidden>${esc(a)}</div></div>`).join("")}
         ${st.efter && i < pos ? `<p class="muted"><b>Därefter:</b> ${esc(st.efter)}</p>` : ""}</article>` : "").join("")}
-      ${klart ? `<div class="step" style="background:var(--good-soft);border-color:var(--good)"><span class="label">Epilog</span><p>${esc(c.epilog)}</p></div>` : ""}</div>
+      ${klart ? `<div class="step" style="background:var(--good-soft);border-color:var(--good)"><span class="label">Epilog</span><p>${esc(c.epilog)}</p></div>
+        <div class="row" style="justify-content:center"><button class="btn primary" id="rsnollst2">↺ Klart – återställ fallet till nästa grupp</button></div>` : ""}</div>
       <div class="rsnav"><button class="btn ghost" id="rsbak" ${pos === 0 ? "disabled" : ""}>← Föregående steg</button><span class="muted">${klart ? "Fallet är klart" : `Steg ${pos+1} av ${c.steg.length}`}</span><button class="btn primary big" id="rsfram" ${klart ? "disabled" : ""}>${pos + 1 >= c.steg.length ? "Visa epilog →" : "Nästa steg →"}</button></div>`;
     $("#rsfram").onclick = () => { RRS[key] = pos + 1; sparaRR(); keepScroll = true; rita(); const n = document.getElementById("st" + (pos + 1)) || $("#steps").lastElementChild; if (n) n.scrollIntoView({behavior:"smooth", block:"start"}); };
+    const nollst = () => { rrNollstall(c.id); RRS[key] = 0; NOTES[key] = {}; rita(); window.scrollTo(0,0); };
+    rrBekrafta($("#rsnollst"), nollst); const n2 = $("#rsnollst2"); if (n2) n2.onclick = nollst;
     $("#rsbak").onclick = () => { RRS[key] = Math.max(0, pos - 1); sparaRR(); keepScroll = true; rita(); const n = document.getElementById("st" + Math.max(0, pos - 1)); if (n) n.scrollIntoView({behavior:"smooth", block:"start"}); };
     wireSteps(c, "skarm", key, rita, () => {});
   };
